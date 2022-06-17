@@ -106,10 +106,8 @@ export default {
       ));
       weightData = await readFile(
         `${wx.env.USER_DATA_PATH}/weightData.bin`,
-        "binary"
+        undefined
       );
-
-      console.log(typeof weightData);
     } catch (_) {
       const model = await tf.io
         .http(
@@ -135,7 +133,7 @@ export default {
       await writeFile(
         `${wx.env.USER_DATA_PATH}/weightData.bin`,
         weightData,
-        "binary"
+        undefined
       );
     }
 
@@ -203,8 +201,6 @@ export default {
             {},
             frameData.pkPts
           );
-          // console.log(frameData.pkPts, poses);
-          console.log(frameData.pkPts);
 
           // draw image and pose on canvas
           await new Promise((resolve) => canvas.requestAnimationFrame(resolve));
