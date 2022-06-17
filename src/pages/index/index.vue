@@ -93,30 +93,46 @@ export default {
     let weightSpecs;
     let weightData;
 
-    // maybe we can use Promise.all to load all files at once
+    // maybe we can use Promise.all to open and load all the files at once
     // but not sure if wechat is happy about that
     try {
-      modelTopology = JSON.parse(await readFile(
-        `${wx.env.USER_DATA_PATH}/modelTopology.json`,
-        "utf8"
-      ));
-      weightSpecs = JSON.parse(await readFile(
-        `${wx.env.USER_DATA_PATH}/weightSpecs.json`,
-        "utf8"
-      ));
+      modelTopology = JSON.parse(
+        await readFile(`${wx.env.USER_DATA_PATH}/modelTopology.json`, "utf8")
+      );
+      weightSpecs = JSON.parse(
+        await readFile(`${wx.env.USER_DATA_PATH}/weightSpecs.json`, "utf8")
+      );
       weightData = await readFile(
         `${wx.env.USER_DATA_PATH}/weightData.bin`,
         undefined
       );
     } catch (_) {
-      const model = await tf.io
-        .http(
-          "https://mp.muzi.fun/resources/ml-models/movenet-lightning-int8/model.json"
-        )
-        .load();
-      modelTopology = model.modelTopology;
-      weightSpecs = model.weightSpecs;
-      weightData = model.weightData;
+      const requestFile = (url) => {
+        return new Promise((resolve, reject) => {
+          uni.request({
+            url: url,
+            responseType: "arraybuffer",
+            success: (res) => {
+              resolve(res.data);
+            },
+            fail: (err) => {
+              reject(err);
+            },
+          });
+        });
+      };
+
+      const [modelTopology, weightSpecs, weightData] = await Promise.all([
+        requestFile(
+          "https://mp.muzi.fun/resources/ml-models/movenet-lightning-int8/modelTopology.json"
+        ),
+        requestFile(
+          "https://mp.muzi.fun/resources/ml-models/movenet-lightning-int8/weightSpecs.json"
+        ),
+        requestFile(
+          "https://mp.muzi.fun/resources/ml-models/movenet-lightning-int8/weightData.bin"
+        ),
+      ]);
 
       await writeFile(
         `${wx.env.USER_DATA_PATH}/modelTopology.json`,
@@ -151,6 +167,17 @@ export default {
     this.loaded = true;
   },
   methods: {
+    shareFile: function (filename) {
+      wx.shareFileMessage({
+        filePath: `${wx.env.USER_DATA_PATH}/${filename}`,
+        success: (res) => {
+          console.log(res);
+        },
+        fail: (err) => {
+          console.log(err);
+        },
+      });
+    },
     chooseVideo: async function () {
       const canvas = await new Promise((resolve, reject) => {
         wx.createSelectorQuery()
